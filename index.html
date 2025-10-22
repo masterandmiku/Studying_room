@@ -1747,10 +1747,7 @@ async function init() {
     const displaySongs = initPlaylist();
     // 设置进度条点击事件
     setupProgressBarClick();
-    // 默认播放第一首歌曲
-    if (displaySongs.length > 0) {
-        await playSong(0);
-    }
+   showBlackWhiteAlert("Please manually select a song and environment sound to play.");
 }
 
 // 修改提示框关闭事件 - 修复版本
@@ -1761,4 +1758,5 @@ elements.closeAlert.addEventListener('click', closeBlackWhiteAlert);
         window.addEventListener('load', init);
     </script>
 </body>
+
 </html>
