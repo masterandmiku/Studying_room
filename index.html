@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Room for Me and Her</title>
     <style>
-        /* 保持原有样式不变 */
+        /* 保持原有样式，新增/修改环境音相关样式 */
         ::-webkit-scrollbar {
             width: 12px;
             height: 12px;
@@ -110,17 +110,36 @@
             display: block;
         }
 
+        /* 新增：环境音面板头部和多选提示 */
+        .environment-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #555;
+        }
+        .environment-panel-header h3 {
+            margin: 0;
+            border: none;
+            padding: 0;
+        }
+        .multi-select-hint {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
         #environment-items-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         #close-environment {
-            position: absolute;
-            top: 10px;
-            right: 10px;
+            position: static; /* 修改：固定定位改为静态，适配头部布局 */
             width: 30px;
             height: 30px;
             padding: 0;
@@ -137,6 +156,7 @@
             border-color: #777;
         }
 
+        /* 修改：环境音项样式，支持多选视觉反馈 */
         .environment-item {
             display: flex;
             flex-direction: column;
@@ -145,14 +165,18 @@
             border: 1px solid #333;
             border-radius: 4px;
             transition: all 0.3s ease;
-            max-height: 100px;
-            width:300px;
+            width: 100%; /* 修复宽度问题 */
             background-color: rgba(0, 0, 0, 0.6);
             aspect-ratio: 1;
+            cursor: pointer; /* 整项可点击 */
         }
         .environment-item:hover {
-            background-color: rgba(0, 0, 0, 0.8);
-            border-color: #555;
+            background-color: rgba(50, 50, 50, 0.8);
+            border-color: #666;
+        }
+        .environment-item.active {
+            background-color: rgba(80, 80, 120, 0.7); /* 选中背景色 */
+            border-color: #99f; /* 选中边框色 */
         }
 
         .sound-header {
@@ -174,6 +198,10 @@
             cursor: pointer;
             position: relative;
             margin-right: 6px;
+        }
+        .env-checkbox:checked {
+            background: #99f; /* 复选框选中背景 */
+            border-color: #ccf;
         }
         .env-checkbox:checked::after {
             content: '✓';
@@ -211,19 +239,13 @@
         }
 
         .env-name {
-            font-size: 0.65rem;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            white-space: normal;
-            word-wrap: break-word;
-            word-break: break-word;
+            font-size: 0.7rem; /* 放大名称，更易读 */
+            color: #ddd;
             text-align: center;
             width: 100%;
-            line-height: 1.2;
-            overflow: visible;
-            display: block;
-            margin-top: 2px;
+            line-height: 1.3;
+            margin-top: 5px;
+            text-transform: none; /* 取消大写，更自然 */
         }
 
         .environment-item .volume-control span {
@@ -753,8 +775,13 @@
 
             <div class="control-section">
                 <button id="toggle-environment">Background Sounds</button>
+                <!-- 修改：环境音面板结构，添加头部和多选提示 -->
                 <div id="environment-panel" class="environment-panel">
-                    <button id="close-environment">×</button>
+                    <div class="environment-panel-header">
+                        <h3>Background Sounds (Select Multiple)</h3>
+                        <button id="close-environment">×</button>
+                    </div>
+                    <p class="multi-select-hint">Check multiple options to mix sounds (e.g., rain + fireplace)</p>
                     <div id="environment-items-container"></div>
                 </div>
             </div>
@@ -847,15 +874,15 @@
                 { id: 'song17', title: 'ポルターガイスト', duration: '4:18', src: 'music/ポルターガイスト.mp3' },
                 { id: 'song18', title: "The Mystic's Dream", duration: '7:51', src: 'music/The_Mystics_Dream.mp3' }
             ],
-            // 已移除指定的两个环境音
+            // 优化：简化环境音名称，更易识别
             environmentSoundOptions: [
-                { id: 'The_fireplace_s_burn_from_kindling_to_embers', name: 'The_fireplace_s_burn_from_kindling_to_embers', volume: 50, audio: null, icon: '🌬️' },
-                { id: 'The_rain-lashed_forest', name: 'The_rain-lashed_forest', volume: 50, audio: null, icon: '🌊' },
-                { id: 'Autumnal_wind_crisp_fallen_leaves_and_avian_murmurs', name: 'Autumnal_wind_crisp_fallen_leaves_and_avian_murmurs', volume: 50, audio: null, icon: '🔥' },
-                { id: 'Gentle_wave_murmurs', name: 'Gentle_wave_murmurs', volume: 50, audio: null, icon: '⛈' },
-                { id: 'Wind_chimes_in_the_gentle_breeze', name: 'Wind_chimes_in_the_gentle_breeze', volume: 50, audio: null, icon: '⛈' },
-                { id: 'writing_sounds', name: 'writing_sounds', volume: 50, audio: null, icon: '⛈' },
-                { id: 'drawing_sounds', name: 'drawing_sounds', volume: 50, audio: null, icon: '⛈' },
+                { id: 'The_fireplace_s_burn_from_kindling_to_embers', name: 'Fireplace Burn', volume: 50, audio: null, icon: '🔥' },
+                { id: 'The_rain-lashed_forest', name: 'Rainy Forest', volume: 50, audio: null, icon: '🌧️' },
+                { id: 'Autumnal_wind_crisp_fallen_leaves_and_avian_murmurs', name: 'Autumn Wind', volume: 50, audio: null, icon: '🍂' },
+                { id: 'Gentle_wave_murmurs', name: 'Gentle Waves', volume: 50, audio: null, icon: '🌊' },
+                { id: 'Wind_chimes_in_the_gentle_breeze', name: 'Wind Chimes', volume: 50, audio: null, icon: '🎐' },
+                { id: 'writing_sounds', name: 'Writing Sounds', volume: 50, audio: null, icon: '✍️' },
+                { id: 'drawing_sounds', name: 'Drawing Sounds', volume: 50, audio: null, icon: '🎨' },
             ],
             localSongs: [],
             localStorageKey: 'studyRoomLocalSongs'
@@ -925,8 +952,7 @@
         }
 
         function toggleEnvironmentPanel() {
-            const isShowing = elements.environmentPanel.style.display === 'block';
-            elements.environmentPanel.style.display = isShowing ? 'none' : 'block';
+            elements.environmentPanel.classList.toggle('show');
         }
 
         function saveLocalSongs() {
@@ -1130,11 +1156,9 @@
             return displaySongs;
         }
 
-        // 修复播放中断错误的核心修改：添加加载状态控制
         let isLoadingAudio = false;
 
         async function playSong(index) {
-            // 如果正在加载其他音频，先终止
             if (isLoadingAudio) {
                 elements.audioElement.pause();
                 elements.audioElement.src = '';
@@ -1154,26 +1178,21 @@
             elements.songTitle.textContent = song.title + (song.isLocal ? ' [Local Music]' : '');
             updatePlaylistForCurrentSong(index);
 
-            // 重置进度条
             elements.progress.style.width = '0%';
             elements.currentTime.textContent = '0:00';
 
             try {
-                // 先暂停当前播放并清除事件监听
                 elements.audioElement.pause();
                 elements.audioElement.removeEventListener('timeupdate', updateProgress);
                 elements.audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
                 elements.audioElement.removeEventListener('ended', handleAudioEnded);
 
-                // 设置新音频源
                 elements.audioElement.src = song.src;
                 elements.audioElement.volume = elements.musicVolume.value / 100;
 
-                // 添加新的事件监听
                 elements.audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
                 elements.audioElement.addEventListener('ended', handleAudioEnded);
 
-                // 重置播放状态
                 state.isMusicPlaying = false;
                 updatePlayPauseButton();
                 isLoadingAudio = false;
@@ -1187,17 +1206,14 @@
             }
         }
 
-        // 分离的元数据加载处理函数
         function handleLoadedMetadata() {
             if (elements.audioElement.duration && !isNaN(elements.audioElement.duration)) {
                 elements.totalTime.textContent = formatTime(elements.audioElement.duration);
                 updateProgress();
             }
-            // 添加timeupdate监听（在元数据加载后）
             elements.audioElement.addEventListener('timeupdate', updateProgress);
         }
 
-        // 分离的音频结束处理函数
         function handleAudioEnded() {
             state.isMusicPlaying = false;
             updatePlayPauseButton();
@@ -1205,7 +1221,6 @@
         }
 
         function setupAudioEvents() {
-            // 已通过分离函数处理，此处留空
         }
 
         async function togglePlayPause() {
@@ -1384,6 +1399,7 @@
             elements.background.style.backgroundImage = `url(${gifUrls[mode]})`;
         }
 
+        // 核心修改：初始化环境音面板，支持多选
         function initEnvironmentPanel() {
             const container = elements.environmentItemsContainer;
             container.innerHTML = '';
@@ -1391,15 +1407,25 @@
             state.environmentSoundOptions.forEach(sound => {
                 const soundElement = document.createElement('div');
                 soundElement.className = 'environment-item';
+                soundElement.dataset.soundId = sound.id;
+
+                // 新增：点击整个环境音项切换选中状态
+                soundElement.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('env-volume')) {
+                        const checkbox = soundElement.querySelector('.env-checkbox');
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                });
+
                 soundElement.innerHTML = `
                     <div class="sound-header">
                         <input type="checkbox" class="env-checkbox" id="env-${sound.id}">
                         <label for="env-${sound.id}" class="env-label">
-                            <img class="env-icon" src="icons/${sound.id}.png" alt="${sound.name}">
+                            <span class="env-icon">${sound.icon}</span> <!-- 修改：用emoji替代图片，避免路径问题 -->
                             <span class="env-name">${sound.name}</span>
                         </label>
                     </div>
-                    <br>
                     <div class="volume-control">
                         <input type="range" class="env-volume" data-sound="${sound.id}" min="0" max="100" value="${sound.volume}">
                         <span class="volume-value">${sound.volume}%</span>
@@ -1407,6 +1433,7 @@
                 `;
                 container.appendChild(soundElement);
 
+                // 初始化独立音频对象（支持多音轨同时播放）
                 sound.audio = new Audio(`sounds/${sound.id}.mp3`);
                 sound.audio.loop = true;
                 sound.audio.volume = sound.volume / 100;
@@ -1416,20 +1443,23 @@
                     showBlackWhiteAlert(`Environment sound failed to load: ${sound.name}. Please check the "sounds" folder.`);
                 });
 
+                // 复选框切换事件（多选核心逻辑）
                 const checkbox = soundElement.querySelector('.env-checkbox');
                 checkbox.addEventListener('change', (e) => {
                     if (e.target.checked) {
+                        // 选中：播放当前环境音，不影响其他已选中的
                         playEnvironmentSound(sound);
                         soundElement.classList.add('active');
                     } else {
+                        // 取消：停止当前环境音，不影响其他
                         stopEnvironmentSound(sound);
                         soundElement.classList.remove('active');
                     }
                 });
 
+                // 独立音量控制
                 const volumeSlider = soundElement.querySelector('.env-volume');
                 const volumeValue = soundElement.querySelector('.volume-value');
-
                 volumeSlider.addEventListener('input', (e) => {
                     sound.volume = e.target.value;
                     volumeValue.textContent = `${sound.volume}%`;
@@ -1438,6 +1468,30 @@
                     }
                 });
             });
+        }
+
+        // 播放环境音（支持多音轨同时播放）
+        function playEnvironmentSound(sound) {
+            if (sound.audio) {
+                // 已播放时重置到开头，避免重复实例
+                if (!sound.audio.paused) {
+                    sound.audio.currentTime = 0;
+                } else {
+                    // 处理浏览器自动播放限制
+                    sound.audio.play().catch(e => {
+                        console.warn(`Auto-play blocked for ${sound.name}`, e);
+                        showBlackWhiteAlert(`Click "Play" again to enable "${sound.name}" (browser policy).`);
+                    });
+                }
+            }
+        }
+
+        // 停止环境音
+        function stopEnvironmentSound(sound) {
+            if (sound.audio) {
+                sound.audio.pause();
+                sound.audio.currentTime = 0;
+            }
         }
 
         function startFocus() {
@@ -1520,26 +1574,6 @@
             const minutes = Math.floor(state.currentTime / 60);
             const seconds = state.currentTime % 60;
             elements.timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        function playEnvironmentSound(sound) {
-            if (sound.audio) {
-                sound.audio.loop = true;
-                sound.audio.volume = sound.volume / 100;
-                sound.audio.currentTime = 0;
-
-                sound.audio.play().catch(e => {
-                    console.error(`Environment sound playback failed: ${sound.name}`, e);
-                    showBlackWhiteAlert(`Environment sound playback failed: ${sound.name}. Please try again.`);
-                });
-            }
-        }
-
-        function stopEnvironmentSound(sound) {
-            if (sound.audio) {
-                sound.audio.pause();
-                sound.audio.currentTime = 0;
-            }
         }
 
         function initEventListeners() {
