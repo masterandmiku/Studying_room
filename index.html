@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studying room for me and her.</title>
+    <title>Study Room for Me and Her</title>
     <style>
         /* 样式保持不变 */
         ::-webkit-scrollbar {
@@ -765,8 +765,8 @@
 
     <!-- 自定义黑白提示框 -->
     <div id="customAlert">
-        <p>由于你的浏览器的原因，自动播放失败，请手动调试</p>
-        <button id="closeAlert">关闭</button>
+        <p>Please manually select a song and environment sound to play.</p>
+        <button id="closeAlert">Close</button>
     </div>
 
     <!-- 背景音乐元素 -->
@@ -967,7 +967,7 @@ function updatePlayModeButtons() {
 }
 
         // 显示自定义黑白提示框
-        function showBlackWhiteAlert(message = "Auto-play failed, please troubleshoot manually.") {
+        function showBlackWhiteAlert(message = "Please manually select a song and environment sound to play.") {
             elements.customAlert.querySelector('p').textContent = message;
             elements.customAlert.style.display = 'block';
         }
@@ -983,17 +983,17 @@ function toggleEnvironmentPanel() {
     elements.environmentPanel.style.display = isShowing ? 'none' : 'block';
 
     // 添加调试信息
-    console.log('环境音弹窗状态:', elements.environmentPanel.style.display);
+    console.log('Environment panel status:', elements.environmentPanel.style.display);
 }
 
 // 本地存储管理
 function saveLocalSongs() {
     try {
         localStorage.setItem(state.localStorageKey, JSON.stringify(state.localSongs));
-        console.log('本地歌曲已保存:', state.localSongs);
+        console.log('Local songs saved:', state.localSongs);
     } catch (error) {
-        console.error('保存本地歌曲失败:', error);
-        showBlackWhiteAlert('保存失败: ' + error.message);
+        console.error('Failed to save local songs:', error);
+        showBlackWhiteAlert('Save failed: ' + error.message);
     }
 }
 
@@ -1002,10 +1002,10 @@ function loadLocalSongs() {
         const saved = localStorage.getItem(state.localStorageKey);
         if (saved) {
             state.localSongs = JSON.parse(saved);
-            console.log('本地歌曲已加载:', state.localSongs);
+            console.log('Local songs loaded:', state.localSongs);
         }
     } catch (error) {
-        console.error('加载本地歌曲失败:', error);
+        console.error('Failed to load local songs:', error);
         state.localSongs = [];
     }
 }
@@ -1053,7 +1053,7 @@ function handleFileUpload(event) {
             const songData = {
                 id: 'local_' + Date.now(),
                 title: file.name.replace(/\.[^/.]+$/, ""), // 移除文件扩展名
-                duration: '未知',
+                duration: 'Unknown',
                 src: e.target.result, // 使用Data URL
                 isLocal: true,
                 fileName: file.name
@@ -1075,7 +1075,7 @@ function handleFileUpload(event) {
             }, 3000);
 
         } catch (error) {
-            console.error('处理上传文件失败:', error);
+            console.error('Failed to process uploaded file:', error);
             uploadStatus.textContent = 'Upload failed: ' + error.message;
             uploadStatus.style.color = '#ff6b6b';
         }
@@ -1107,8 +1107,7 @@ function deleteLocalSong(songId) {
             updatePlayPauseButton();
             elements.songTitle.textContent = 'Select a song to play';
 
-            // 自动播放下一首歌曲
-            autoPlayNextSong();
+            // 不自动播放下一首，保持手动选择
         }
 
         // 更新播放列表
@@ -1116,13 +1115,10 @@ function deleteLocalSong(songId) {
     }
 }
 
-// 自动播放下一首歌曲
+// 自动播放下一首歌曲（已禁用，保留函数结构）
 function autoPlayNextSong() {
-    const allSongs = [...state.songOptions, ...state.localSongs];
-    if (allSongs.length > 0) {
-        const nextIndex = 0; // 播放第一首
-        playSong(nextIndex);
-    }
+    // 手动模式下禁用自动播放
+    elements.songTitle.textContent = 'Select a song to play';
 }
 
 // 初始化播放列表（包含本地歌曲）
@@ -1158,14 +1154,14 @@ function createPlaylistItem(song, index) {
 
     // 为本地歌曲添加删除按钮
     const deleteBtn = song.isLocal ?
-        `<button class="delete-song-btn" data-song-id="${song.id}" style="margin-left: auto; background: #ff6b6b; border: 1px solid #ff6b6b; padding: 2px 8px; font-size: 0.7rem;">删除</button>` :
+        `<button class="delete-song-btn" data-song-id="${song.id}" style="margin-left: auto; background: #ff6b6b; border: 1px solid #ff6b6b; padding: 2px 8px; font-size: 0.7rem;">Delete</button>` :
         '';
 
     item.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; flex-direction: column;">
                 <span>${song.title}</span>
-                ${song.isLocal ? '<span style="font-size: 0.7rem; color: #6bff6b;">[本地]</span>' : ''}
+                ${song.isLocal ? '<span style="font-size: 0.7rem; color: #6bff6b;">[Local]</span>' : ''}
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span class="song-duration">${song.duration}</span>
@@ -1244,38 +1240,17 @@ async function playSong(index) {
     elements.audioElement.volume = elements.musicVolume.value / 100;
 
     try {
-        // 尝试自动播放
-        await elements.audioElement.play();
-        state.isMusicPlaying = true;
+        // 手动播放，不自动触发
+        state.isMusicPlaying = false;
         updatePlayPauseButton();
 
         // 设置音频事件监听
         setupAudioEvents();
     } catch (error) {
-        console.error('自动播放失败:', error);
-        showBlackWhiteAlert('Auto-play failed, please debug manually.');
+        console.error('Playback initialization failed:', error);
+        showBlackWhiteAlert('Failed to initialize playback. Please select the song again.');
         state.isMusicPlaying = false;
         updatePlayPauseButton();
-        // 移除之前的事件监听器，避免重复添加
-        elements.closeAlert.removeEventListener('click', handleAutoPlayRetry);
-        // 添加新的重试事件监听
-        elements.closeAlert.addEventListener('click', handleAutoPlayRetry, { once: true });
-    }
-}
-
-// 处理自动播放重试 - 修改版本
-function handleAutoPlayRetry() {
-    closeBlackWhiteAlert();
-    // 关闭提示框后，播放随机列表的第一首歌
-    if (!state.isMusicPlaying) {
-        const allSongs = [...state.songOptions, ...state.localSongs];
-        if (allSongs.length > 0) {
-            // 播放随机列表的第一首
-            const shuffledSongs = updatePlaylistForCurrentSong(state.currentSongIndex);
-            if (shuffledSongs.length > 0) {
-                playSong(0); // 播放随机列表的第一首
-            }
-        }
     }
 }
 
@@ -1294,7 +1269,12 @@ function setupAudioEvents() {
             updateProgress(); // 初始更新
         }
     };
-    elements.audioElement.onended = playNextSong;
+    elements.audioElement.onended = () => {
+        // 歌曲结束后不自动播放下一首
+        state.isMusicPlaying = false;
+        updatePlayPauseButton();
+        elements.songTitle.textContent = 'Song ended. Select another song';
+    };
 
     // 设置进度条点击事件
     setupProgressBarClick();
@@ -1305,6 +1285,11 @@ function setupAudioEvents() {
 
         // 播放/暂停切换
         async function togglePlayPause() {
+            if (!elements.audioElement.src) {
+                showBlackWhiteAlert('Please select a song first from the playlist');
+                return;
+            }
+
             if (state.isMusicPlaying) {
                 pauseMusic();
             } else {
@@ -1315,12 +1300,7 @@ function setupAudioEvents() {
         // 手动播放
 async function playMusic() {
     if (!elements.audioElement.src) {
-        // 移除vocal过滤，直接使用第一首歌
-        const firstSong = state.songOptions[0];
-        if (firstSong) {
-            const index = state.songOptions.findIndex(s => s.id === firstSong.id);
-            await playSong(index);
-        }
+        showBlackWhiteAlert('Please select a song first from the playlist');
         return;
     }
 
@@ -1330,7 +1310,7 @@ async function playMusic() {
         updatePlayPauseButton();
     } catch (error) {
         console.error('Playback failed:', error);
-        showBlackWhiteAlert('Playback failed, please debug manually.');
+        showBlackWhiteAlert('Playback failed. Please try selecting the song again.');
     }
 }
 
@@ -1366,9 +1346,8 @@ function playPreviousSong() {
             // 顺序播放：播放上一首，到第一首后停止
             prevIndex = state.currentSongIndex - 1;
             if (prevIndex < 0) {
-                // 如果是第一首，停止播放
-                pauseMusic();
-                elements.songTitle.textContent = 'first song';
+                // 如果是第一首，提示无法继续
+                showBlackWhiteAlert('This is the first song');
                 return;
             }
             break;
@@ -1409,9 +1388,8 @@ function playNextSong() {
             // 顺序播放：播放下一首，到最后一首后停止
             nextIndex = state.currentSongIndex + 1;
             if (nextIndex >= allSongs.length) {
-                // 如果是最后一首，停止播放
-                pauseMusic();
-                elements.songTitle.textContent = 'ending';
+                // 如果是最后一首，提示无法继续
+                showBlackWhiteAlert('This is the last song');
                 return;
             }
             break;
@@ -1551,8 +1529,8 @@ function initEnvironmentPanel() {
 
         // 添加错误处理
         sound.audio.addEventListener('error', function(e) {
-            console.error(`环境音加载失败: ${sound.name}`, e);
-            showBlackWhiteAlert(`Environment sound failed to load: ${sound.name}，please check the "sounds" folder.`);
+            console.error(`Environment sound load failed: ${sound.name}`, e);
+            showBlackWhiteAlert(`Environment sound failed to load: ${sound.name}. Please check the "sounds" folder.`);
         });
 
         // 绑定勾选框事件
@@ -1611,10 +1589,7 @@ function initEnvironmentPanel() {
                 updateTimer();
             }, 1000);
 
-            // 尝试播放音乐 - 利用用户交互时机
-            if (!state.isMusicPlaying && elements.audioElement.src) {
-                playMusic();
-            }
+            // 移除自动播放逻辑
         }
 
         // 暂停专注
@@ -1691,8 +1666,8 @@ function playEnvironmentSound(sound) {
         sound.audio.currentTime = 0;
 
         sound.audio.play().catch(e => {
-            console.error(`环境音播放失败: ${sound.name}`, e);
-            showBlackWhiteAlert(`Environment sound playback failed.: ${sound.name}`);
+            console.error(`Environment sound playback failed: ${sound.name}`, e);
+            showBlackWhiteAlert(`Environment sound playback failed: ${sound.name}. Please try again.`);
         });
     }
 }
@@ -1780,13 +1755,6 @@ function initEventListeners() {
         }
     });
 
-    // 页面点击事件，用于触发播放（解决浏览器自动播放限制）
-    document.addEventListener('click', async () => {
-        if (!state.isMusicPlaying && elements.audioElement.src) {
-            await playMusic();
-        }
-    }, { once: true });
-
     // 键盘快捷键支持
     document.addEventListener('keydown', (e) => {
         // 空格键：播放/暂停音乐
@@ -1820,7 +1788,7 @@ function initEventListeners() {
     // 窗口大小变化时调整布局（可选）
     window.addEventListener('resize', () => {
         // 可以在这里添加响应式布局调整
-        console.log('窗口大小改变:', window.innerWidth, 'x', window.innerHeight);
+        console.log('Window resized:', window.innerWidth, 'x', window.innerHeight);
     });
 
 }
@@ -1841,7 +1809,8 @@ async function init() {
     const displaySongs = initPlaylist();
     // 设置进度条点击事件
     setupProgressBarClick();
-   showBlackWhiteAlert("Please manually select a song and environment sound to play.");
+    // 显示初始提示
+    showBlackWhiteAlert("Please manually select a song and environment sound to play.");
 }
 
 // 修改提示框关闭事件 - 修复版本
