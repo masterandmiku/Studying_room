@@ -751,12 +751,13 @@
                 <button id="stop-focus" disabled>Complete Focusing</button>
             </div>
 
-            <div class="control-section">
-                <button id="toggle-environment">Background Sounds</button>
-                <div id="environment-panel" class="environment-panel">
-                    <button id="close-environment">×</button>
-                    <div id="environment-items-container"></div>
-                </div>
+   <div id="environment-panel" class="environment-panel">
+        <div class="environment-panel-header">
+            <h3>Background Sounds (Select Multiple)</h3>
+            <button id="close-environment">×</button>
+        </div>
+        <div id="environment-items-container"></div>
+    </div>
             </div>
         </div>
 
@@ -1384,6 +1385,7 @@
             elements.background.style.backgroundImage = `url(${gifUrls[mode]})`;
         }
 
+        // 初始化环境音面板（重点修改）
         function initEnvironmentPanel() {
             const container = elements.environmentItemsContainer;
             container.innerHTML = '';
@@ -1391,15 +1393,26 @@
             state.environmentSoundOptions.forEach(sound => {
                 const soundElement = document.createElement('div');
                 soundElement.className = 'environment-item';
+                soundElement.dataset.soundId = sound.id;
+
+                // 为整个环境音项添加点击事件（增强多选交互）
+                soundElement.addEventListener('click', (e) => {
+                    // 点击复选框或项本身都能切换状态
+                    if (!e.target.classList.contains('env-volume')) {
+                        const checkbox = soundElement.querySelector('.env-checkbox');
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                });
+
                 soundElement.innerHTML = `
                     <div class="sound-header">
                         <input type="checkbox" class="env-checkbox" id="env-${sound.id}">
                         <label for="env-${sound.id}" class="env-label">
-                            <img class="env-icon" src="icons/${sound.id}.png" alt="${sound.name}">
+                            <span class="env-icon">${sound.icon}</span>
                             <span class="env-name">${sound.name}</span>
                         </label>
                     </div>
-                    <br>
                     <div class="volume-control">
                         <input type="range" class="env-volume" data-sound="${sound.id}" min="0" max="100" value="${sound.volume}">
                         <span class="volume-value">${sound.volume}%</span>
@@ -1407,29 +1420,34 @@
                 `;
                 container.appendChild(soundElement);
 
+                // 初始化音频对象（支持多音频同时播放）
                 sound.audio = new Audio(`sounds/${sound.id}.mp3`);
-                sound.audio.loop = true;
+                sound.audio.loop = true; // 循环播放
                 sound.audio.volume = sound.volume / 100;
 
+                // 加载错误处理
                 sound.audio.addEventListener('error', function(e) {
-                    console.error(`Environment sound load failed: ${sound.name}`, e);
-                    showBlackWhiteAlert(`Environment sound failed to load: ${sound.name}. Please check the "sounds" folder.`);
+                    console.error(`Failed to load: ${sound.name}`, e);
+                    showBlackWhiteAlert(`Could not load "${sound.name}". Check if the file exists.`);
                 });
 
+                // 复选框切换事件（核心多选逻辑）
                 const checkbox = soundElement.querySelector('.env-checkbox');
                 checkbox.addEventListener('change', (e) => {
                     if (e.target.checked) {
+                        // 选中：播放该环境音，不影响其他已选中的
                         playEnvironmentSound(sound);
                         soundElement.classList.add('active');
                     } else {
+                        // 取消选中：停止该环境音
                         stopEnvironmentSound(sound);
                         soundElement.classList.remove('active');
                     }
                 });
 
+                // 音量调节（独立控制每个环境音的音量）
                 const volumeSlider = soundElement.querySelector('.env-volume');
                 const volumeValue = soundElement.querySelector('.volume-value');
-
                 volumeSlider.addEventListener('input', (e) => {
                     sound.volume = e.target.value;
                     volumeValue.textContent = `${sound.volume}%`;
@@ -1439,7 +1457,7 @@
                 });
             });
         }
-
+        
         function startFocus() {
             if (state.isFocusing && !state.isPaused) return;
 
@@ -1522,23 +1540,26 @@
             elements.timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
-        function playEnvironmentSound(sound) {
+function playEnvironmentSound(sound) {
             if (sound.audio) {
-                sound.audio.loop = true;
-                sound.audio.volume = sound.volume / 100;
-                sound.audio.currentTime = 0;
-
-                sound.audio.play().catch(e => {
-                    console.error(`Environment sound playback failed: ${sound.name}`, e);
-                    showBlackWhiteAlert(`Environment sound playback failed: ${sound.name}. Please try again.`);
-                });
+                // 即使已在播放，再次选中也重新开始（避免重复播放多个实例）
+                if (!sound.audio.paused) {
+                    sound.audio.currentTime = 0;
+                } else {
+                    // 播放并处理浏览器自动播放限制
+                    sound.audio.play().catch(e => {
+                        console.warn(`Auto-play blocked for ${sound.name}`, e);
+                        // 提示用户手动交互后再试
+                        showBlackWhiteAlert(`Click "Play" again to enable "${sound.name}" (browser policy).`);
+                    });
+                }
             }
         }
 
         function stopEnvironmentSound(sound) {
             if (sound.audio) {
                 sound.audio.pause();
-                sound.audio.currentTime = 0;
+                sound.audio.currentTime = 0; // 重置到开头，下次播放从头开始
             }
         }
 
@@ -1650,3 +1671,4 @@
     </script>
 </body>
 </html>
+
