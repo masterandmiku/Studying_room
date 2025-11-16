@@ -887,7 +887,9 @@
                 { id: 'drawing_sounds', name: 'Drawing Sounds', volume: 50, audio: null, icon: '🎨' },
             ],
             localSongs: [],
-            localStorageKey: 'studyRoomLocalSongs'
+            localStorageKey: 'studyRoomLocalSongs',
+            isLoading: false, // 标记是否正在加载音乐
+            loadStatus: '' // 加载状态文本（加载中/加载失败）
         };
 
         const elements = {
@@ -944,10 +946,12 @@
             }
         }
 
-        function showBlackWhiteAlert(message = "Please manually select a song and environment sound to play.") {
-            elements.customAlert.querySelector('p').textContent = message;
-            elements.customAlert.style.display = 'block';
-        }
+   function showBlackWhiteAlert(message) {
+  elements.customAlert.querySelector('p').textContent = message;
+  elements.customAlert.style.display = 'block';
+  // 3秒后自动关闭，提升体验
+  setTimeout(closeBlackWhiteAlert, 3000);
+}
 
         function closeBlackWhiteAlert() {
             elements.customAlert.style.display = 'none';
@@ -1015,34 +1019,47 @@
 
             const reader = new FileReader();
 
-            reader.onload = function(e) {
-                try {
-                    const songData = {
-                        id: 'local_' + Date.now(),
-                        title: file.name.replace(/\.[^/.]+$/, ""),
-                        duration: 'Unknown',
-                        src: e.target.result,
-                        isLocal: true,
-                        fileName: file.name
-                    };
+reader.onload = function(e) {
+  try {
+    const songData = {
+      id: 'local_' + Date.now(),
+      title: file.name.replace(/\.[^/.]+$/, ""),
+      duration: 'Loading...', // 上传后先显示加载中
+      src: e.target.result,
+      isLocal: true,
+      fileName: file.name
+    };
 
-                    state.localSongs.push(songData);
-                    saveLocalSongs();
-                    updatePlaylistForCurrentSong(state.currentSongIndex);
+    state.localSongs.push(songData);
+    saveLocalSongs();
+    updatePlaylistForCurrentSong(state.currentSongIndex);
 
-                    uploadStatus.textContent = 'Upload successful!';
-                    uploadStatus.style.color = '#6bff6b';
+    uploadStatus.textContent = 'Upload successful! Loading music...';
+    uploadStatus.style.color = '#6bff6b';
 
-                    setTimeout(() => {
-                        uploadStatus.textContent = '';
-                    }, 3000);
+    // 新增：验证本地歌曲是否可播放
+    const testAudio = new Audio(songData.src);
+    testAudio.addEventListener('canplay', () => {
+      setTimeout(() => {
+        uploadStatus.textContent = 'Upload & Load successful!';
+        setTimeout(() => uploadStatus.textContent = '', 3000);
+        // 更新歌曲时长显示
+        songData.duration = formatTime(testAudio.duration);
+        updatePlaylistForCurrentSong(state.currentSongIndex);
+      }, 500);
+    });
 
-                } catch (error) {
-                    console.error('Failed to process uploaded file:', error);
-                    uploadStatus.textContent = 'Upload failed: ' + error.message;
-                    uploadStatus.style.color = '#ff6b6b';
-                }
-            };
+    testAudio.addEventListener('error', () => {
+      uploadStatus.textContent = 'Upload success but load failed!';
+      uploadStatus.style.color = '#ff6b6b';
+    });
+
+  } catch (error) {
+    console.error('Failed to process uploaded file:', error);
+    uploadStatus.textContent = 'Upload failed: ' + error.message;
+    uploadStatus.style.color = '#ff6b6b';
+  }
+};
 
             reader.onerror = function() {
                 uploadStatus.textContent = 'Failed to read the file';
@@ -1074,6 +1091,7 @@
             elements.songTitle.textContent = 'Select a song to play';
         }
 
+        
         function initPlaylist() {
             loadLocalSongs();
             const playlist = elements.playlistItems;
@@ -1160,53 +1178,83 @@
 
         let isLoadingAudio = false;
 
-        async function playSong(index) {
-            if (isLoadingAudio) {
-                elements.audioElement.pause();
-                elements.audioElement.src = '';
-                isLoadingAudio = false;
-            }
+  async function playSong(index) {
+  // 新增：加载中锁定，避免重复点击
+  if (state.isLoading) {
+    showBlackWhiteAlert('Music is still loading, please wait a moment~');
+    return;
+  }
 
-            const allSongs = [...state.songOptions, ...state.localSongs];
-            if (!allSongs[index] || !allSongs[index].src) {
-                showBlackWhiteAlert('Invalid song path, please check the file.');
-                return;
-            }
+  if (isLoadingAudio) {
+    elements.audioElement.pause();
+    elements.audioElement.src = '';
+    isLoadingAudio = false;
+  }
 
-            isLoadingAudio = true;
-            const song = allSongs[index];
-            state.currentSongIndex = index;
-            state.currentSongType = song.isLocal ? 'local' : 'default';
-            elements.songTitle.textContent = song.title + (song.isLocal ? ' [Local Music]' : '');
-            updatePlaylistForCurrentSong(index);
+  const allSongs = [...state.songOptions, ...state.localSongs];
+  if (!allSongs[index] || !allSongs[index].src) {
+    showBlackWhiteAlert('Invalid song path, please check the file.');
+    return;
+  }
 
-            elements.progress.style.width = '0%';
-            elements.currentTime.textContent = '0:00';
+  // 新增：标记加载中，更新UI提示
+  state.isLoading = true;
+  state.loadStatus = 'Loading...';
+  elements.songTitle.textContent = `${allSongs[index].title} ${state.loadStatus}`;
+  elements.playPauseBtn.disabled = true; // 禁用播放按钮
+  elements.prevSongBtn.disabled = true; // 禁用上一曲
+  elements.nextSongBtn.disabled = true; // 禁用下一曲
 
-            try {
-                elements.audioElement.pause();
-                elements.audioElement.removeEventListener('timeupdate', updateProgress);
-                elements.audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-                elements.audioElement.removeEventListener('ended', handleAudioEnded);
+  isLoadingAudio = true;
+  const song = allSongs[index];
+  state.currentSongIndex = index;
+  state.currentSongType = song.isLocal ? 'local' : 'default';
+  updatePlaylistForCurrentSong(index);
 
-                elements.audioElement.src = song.src;
-                elements.audioElement.volume = elements.musicVolume.value / 100;
+  elements.progress.style.width = '0%';
+  elements.currentTime.textContent = '0:00';
 
-                elements.audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-                elements.audioElement.addEventListener('ended', handleAudioEnded);
+  try {
+    elements.audioElement.pause();
+    elements.audioElement.removeEventListener('timeupdate', updateProgress);
+    elements.audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    elements.audioElement.removeEventListener('ended', handleAudioEnded);
 
-                state.isMusicPlaying = false;
-                updatePlayPauseButton();
-                isLoadingAudio = false;
+    elements.audioElement.src = song.src;
+    elements.audioElement.volume = elements.musicVolume.value / 100;
 
-            } catch (error) {
-                console.error('Playback initialization failed:', error);
-                showBlackWhiteAlert('Failed to initialize playback. Please select the song again.');
-                state.isMusicPlaying = false;
-                updatePlayPauseButton();
-                isLoadingAudio = false;
-            }
-        }
+    elements.audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    elements.audioElement.addEventListener('ended', handleAudioEnded);
+
+    // 新增：加载成功后恢复状态
+    elements.audioElement.addEventListener('canplay', () => {
+      state.isLoading = false;
+      state.loadStatus = '';
+      elements.playPauseBtn.disabled = false;
+      elements.prevSongBtn.disabled = false;
+      elements.nextSongBtn.disabled = false;
+      elements.songTitle.textContent = song.title + (song.isLocal ? ' [Local Music]' : '');
+    });
+
+    state.isMusicPlaying = false;
+    updatePlayPauseButton();
+    isLoadingAudio = false;
+
+  } catch (error) {
+    // 新增：加载失败恢复状态+提示
+    state.isLoading = false;
+    state.loadStatus = '';
+    elements.playPauseBtn.disabled = false;
+    elements.prevSongBtn.disabled = false;
+    elements.nextSongBtn.disabled = false;
+    
+    console.error('Playback initialization failed:', error);
+    showBlackWhiteAlert('Failed to load the song. Please try again later.');
+    state.isMusicPlaying = false;
+    updatePlayPauseButton();
+    isLoadingAudio = false;
+  }
+}
 
         function handleLoadedMetadata() {
             if (elements.audioElement.duration && !isNaN(elements.audioElement.duration)) {
@@ -1225,18 +1273,23 @@
         function setupAudioEvents() {
         }
 
-        async function togglePlayPause() {
-            if (!elements.audioElement.src) {
-                showBlackWhiteAlert('Please select a song first from the playlist');
-                return;
-            }
+async function togglePlayPause() {
+  if (state.isLoading) {
+    showBlackWhiteAlert('Music is still loading, please wait a moment~');
+    return;
+  }
 
-            if (state.isMusicPlaying) {
-                pauseMusic();
-            } else {
-                await playMusic();
-            }
-        }
+  if (!elements.audioElement.src) {
+    showBlackWhiteAlert('Please select a song first from the playlist');
+    return;
+  }
+
+  if (state.isMusicPlaying) {
+    pauseMusic();
+  } else {
+    await playMusic();
+  }
+}
 
         async function playMusic() {
             if (!elements.audioElement.src) {
@@ -1686,6 +1739,7 @@
     </script>
 </body>
 </html>
+
 
 
 
