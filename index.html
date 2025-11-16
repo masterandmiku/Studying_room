@@ -745,6 +745,19 @@
             border-color: transparent transparent transparent #fff;
             margin-left: 6px;
         }
+        /* 添加到 .environment-item.active 样式下方 */
+.environment-item.active {
+    background-color: rgba(80, 80, 120, 0.7);
+    border-color: #99f;
+    box-shadow: 0 0 8px rgba(153, 153, 255, 0.5); /* 新增选中发光效果 */
+}
+.environment-item.active .env-name {
+    color: #fff; /* 选中后名称变白色 */
+    font-weight: bold;
+}
+.environment-item.active .env-icon {
+    filter: brightness(1.5); /* 选中后图标更亮 */
+}
     </style>
 </head>
 <body>
@@ -1465,13 +1478,14 @@ async function togglePlayPause() {
                 soundElement.dataset.soundId = sound.id;
 
                 // 新增：点击整个环境音项切换选中状态
-                soundElement.addEventListener('click', (e) => {
-                    if (!e.target.classList.contains('env-volume')) {
-                        const checkbox = soundElement.querySelector('.env-checkbox');
-                        checkbox.checked = !checkbox.checked;
-                        checkbox.dispatchEvent(new Event('change'));
-                    }
-                });
+ soundElement.addEventListener('click', (e) => {
+    // 点击音量滑块或音量值时，不切换选中状态
+    if (!e.target.classList.contains('env-volume') && !e.target.classList.contains('volume-value')) {
+        const checkbox = soundElement.querySelector('.env-checkbox');
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change'));
+    }
+});
 
                 soundElement.innerHTML = `
                     <div class="sound-header">
@@ -1500,17 +1514,22 @@ async function togglePlayPause() {
 
                 // 复选框切换事件（多选核心逻辑）
                 const checkbox = soundElement.querySelector('.env-checkbox');
-                checkbox.addEventListener('change', (e) => {
-                    if (e.target.checked) {
-                        // 选中：播放当前环境音，不影响其他已选中的
-                        playEnvironmentSound(sound);
-                        soundElement.classList.add('active');
-                    } else {
-                        // 取消：停止当前环境音，不影响其他
-                        stopEnvironmentSound(sound);
-                        soundElement.classList.remove('active');
-                    }
-                });
+checkbox.addEventListener('change', (e) => {
+    if (e.target.checked) {
+        soundElement.classList.add('active');
+        // 确保音频加载完成后再播放，避免浏览器限制
+        if (sound.audio.readyState >= 2) {
+            playEnvironmentSound(sound);
+        } else {
+            sound.audio.addEventListener('canplay', () => {
+                playEnvironmentSound(sound);
+            }, { once: true });
+        }
+    } else {
+        soundElement.classList.remove('active');
+        stopEnvironmentSound(sound);
+    }
+});
 
                 // 独立音量控制
                 const volumeSlider = soundElement.querySelector('.env-volume');
@@ -1739,6 +1758,7 @@ async function togglePlayPause() {
     </script>
 </body>
 </html>
+
 
 
 
